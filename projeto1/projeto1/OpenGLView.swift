@@ -33,8 +33,9 @@ class OpenGLView: NSOpenGLView {
         glColor3f(1.0, 1.0, 0.0)
         glBegin(GLenum(GL_POINTS))
         
-        for point in controlPoints {
-            glVertex3fv([Float(point.x), Float(point.y), 0])
+        for point in self.controlPoints {
+            let normPoint = self.normalize(point: point)
+            glVertex3fv([Float(normPoint.x), Float(normPoint.y), 0])
         }
         
         glEnd();
@@ -54,10 +55,38 @@ class OpenGLView: NSOpenGLView {
         let touchPoint : NSPoint = self.convert(eventLocation, from: nil)
         let normalizedTouchPoint : NSPoint = self.normalize(point: touchPoint)
         
-        self.controlPoints.append(normalizedTouchPoint)
+        self.controlPoints.append(touchPoint)
         
         //calling draw again
         self.setNeedsDisplay(self.frame)
+    }
+    
+    override func rightMouseDown(with event: NSEvent) {
+        
+        //converting screen to window coordinates
+        let eventLocation : NSPoint = event.locationInWindow
+        let touchPoint : NSPoint = self.convert(eventLocation, from: nil)
+        let normalizedTouchPoint : NSPoint = self.normalize(point: touchPoint)
+        
+        var touchRect : CGRect = CGRect(x: touchPoint.x-5, y: touchPoint.y-5, width: 10, height: 10)
+        
+        self.remove(point: normalizedTouchPoint, within: touchRect)
+        
+        self.setNeedsDisplay(self.frame)
+        
+        
+    }
+    
+    func remove(point: NSPoint, within: CGRect) {
+        
+        
+        
+        for index in (0..<self.controlPoints.count) {
+            if within.contains(self.controlPoints[index]) {
+                self.controlPoints.remove(at: index)
+                break
+            }
+        }
     }
     
     
