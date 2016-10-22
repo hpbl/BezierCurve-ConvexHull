@@ -14,7 +14,8 @@ import GLUT
 
 class OpenGLView: NSOpenGLView {
     
-    var controlPoints : [NSPoint] = [] {
+    //MARK: - Class properties
+    var controlPoints: [NSPoint] = [] {
         //updates interface when new value is attributed
         didSet {
             if controlPoints != oldValue {
@@ -23,6 +24,7 @@ class OpenGLView: NSOpenGLView {
         }
     }
 
+    // MARK: - Drawing methods
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
@@ -52,16 +54,15 @@ class OpenGLView: NSOpenGLView {
         glEnd();
     }
     
-    
+    // MARK: - Mouse clicks methods
     //called when left mouse button is clicked
     override func mouseDown(with event: NSEvent) {
         
         //converting screen to window coordinates
-        let touchPoint : NSPoint = self.convert(event.locationInWindow, from: nil)
+        let touchPoint: NSPoint = self.convert(event.locationInWindow, from: nil)
         
         self.controlPoints.append(touchPoint)
     }
-    
     
     //called when right mouse button is clicked
     override func rightMouseDown(with event: NSEvent) {
@@ -75,7 +76,7 @@ class OpenGLView: NSOpenGLView {
         self.removePointInside(rectangle: touchRect)
     }
     
-    
+    //MARK: - Point methods
     func removePointInside(rectangle: CGRect) {
         for index in (0..<self.controlPoints.count) {
             if rectangle.contains(self.controlPoints[index]) {
@@ -85,10 +86,9 @@ class OpenGLView: NSOpenGLView {
         }
     }
     
-    
     //normalizing point to [-1, 1]
     func normalize(point: NSPoint) -> NSPoint{
-        var normalizedPoint : NSPoint = point
+        var normalizedPoint: NSPoint = point
        
         normalizedPoint.x = (((point.x - self.frame.width)*(1 - (-1)))/(self.frame.width)) - (-1)
         normalizedPoint.y = (((point.y - self.frame.height)*(1 - (-1)))/(self.frame.height)) - (-1)
