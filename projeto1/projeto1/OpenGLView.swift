@@ -23,6 +23,26 @@ class OpenGLView: NSOpenGLView {
             }
         }
     }
+    
+    //MARK: - Point methods
+    func removePoint(inside rectangle: CGRect) {
+        for index in (0..<self.controlPoints.count) {
+            if rectangle.contains(self.controlPoints[index]) {
+                self.controlPoints.remove(at: index)
+                break
+            }
+        }
+    }
+    
+    //normalizing point to [-1, 1]
+    func normalize(point: NSPoint) -> NSPoint{
+        var normalizedPoint: NSPoint = point
+        
+        normalizedPoint.x = (((point.x - self.frame.width)*(1 - (-1)))/(self.frame.width)) - (-1)
+        normalizedPoint.y = (((point.y - self.frame.height)*(1 - (-1)))/(self.frame.height)) - (-1)
+        
+        return normalizedPoint
+    }
 
     // MARK: - Drawing methods
     override func draw(_ dirtyRect: NSRect) {
@@ -54,14 +74,53 @@ class OpenGLView: NSOpenGLView {
         glEnd();
     }
     
-    // MARK: - Mouse clicks methods
+    // MARK: - Mouse methods
     //called when left mouse button is clicked
     override func mouseDown(with event: NSEvent) {
         
-        //converting screen to window coordinates
-        let touchPoint: NSPoint = self.convert(event.locationInWindow, from: nil)
         
-        self.controlPoints.append(touchPoint)
+        var theEvent: NSEvent
+        var keepOn: Bool = true
+        var isInside: Bool = false
+        var mouseLoc: NSPoint
+        var dragging: Bool = false
+        
+        while (keepOn) {
+            theEvent = (self.window?.nextEvent(matching: NSEventMask(rawValue: UInt64(Int(NSEventMask.leftMouseUp.union(.leftMouseDragged).rawValue))))!)!
+            mouseLoc = self.convert(theEvent.locationInWindow, from: nil)
+            isInside = self.mouse(mouseLoc, in: self.bounds)
+            //creating rect centered where user clicked
+            let touchRect : CGRect = CGRect(x: mouseLoc.x-15, y: mouseLoc.y-15, width: 30, height: 30)
+            
+            switch (theEvent.type) {
+            case NSEventType.leftMouseDragged:
+                dragging = true
+                for index in (0..<self.controlPoints.count) {
+                    if touchRect.contains(self.controlPoints[index]) {
+                        self.controlPoints[index] = mouseLoc
+                        break
+                    }
+                }
+                break;
+            case NSEventType.leftMouseUp:
+                if (isInside && !dragging) {
+                    //converting screen to window coordinates
+                    let touchPoint: NSPoint = self.convert(event.locationInWindow, from: nil)
+                    
+                    self.controlPoints.append(touchPoint)
+                }
+                //do something
+                dragging = false
+                keepOn = false
+                break;
+            default:
+                /* Ignore any other kind of event. */
+                break;
+            }
+            
+        }
+        
+        return;
     }
     
     //called when right mouse button is clicked
@@ -73,26 +132,13 @@ class OpenGLView: NSOpenGLView {
         //creating rect centered where user clicked
         let touchRect : CGRect = CGRect(x: touchPoint.x-5, y: touchPoint.y-5, width: 10, height: 10)
         
-        self.removePointInside(rectangle: touchRect)
+        self.removePoint(inside: touchRect)
     }
     
-    //MARK: - Point methods
-    func removePointInside(rectangle: CGRect) {
-        for index in (0..<self.controlPoints.count) {
-            if rectangle.contains(self.controlPoints[index]) {
-                self.controlPoints.remove(at: index)
-                break
-            }
-        }
-    }
-    
-    //normalizing point to [-1, 1]
-    func normalize(point: NSPoint) -> NSPoint{
-        var normalizedPoint: NSPoint = point
-       
-        normalizedPoint.x = (((point.x - self.frame.width)*(1 - (-1)))/(self.frame.width)) - (-1)
-        normalizedPoint.y = (((point.y - self.frame.height)*(1 - (-1)))/(self.frame.height)) - (-1)
-        
-        return normalizedPoint
-    }
 }
+
+
+
+
+
+
