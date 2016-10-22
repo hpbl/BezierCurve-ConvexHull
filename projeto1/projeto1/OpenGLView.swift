@@ -14,21 +14,32 @@ import GLUT
 
 class OpenGLView: NSOpenGLView {
     
-    var controlPoints : [NSPoint] = []
+    var controlPoints : [NSPoint] = [] {
+        //updates interface when new value is attributed
+        didSet {
+            if controlPoints != oldValue {
+                self.setNeedsDisplay(self.frame)
+            }
+        }
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
 
         // Drawing code here.
         
-        //Defining size of rendering window
-        //glViewport(0, 0, GLsizei(self.frame.size.width), GLsizei(self.frame.size.height))
-        
         //clearing the color buffer and setting bg color
         glClearColor(0.2, 0.3, 0.3, 1)
         glClear(GLbitfield(GL_COLOR_BUFFER_BIT))
     
-        //drawing points
+        self.drawControlPoints()
+
+        //forcing execution of GL commands
+        glFlush()
+    }
+    
+    // OpengL routine to draw points
+    func drawControlPoints() {
         glPointSize(5.0)
         glColor3f(1.0, 1.0, 0.0)
         glBegin(GLenum(GL_POINTS))
@@ -39,50 +50,35 @@ class OpenGLView: NSOpenGLView {
         }
         
         glEnd();
-
-        //forcing execution of GL commands
-        glFlush()
-    
-        
     }
     
     
-    //called when mouse is clicked
+    //called when left mouse button is clicked
     override func mouseDown(with event: NSEvent) {
         
         //converting screen to window coordinates
-        let eventLocation : NSPoint = event.locationInWindow
-        let touchPoint : NSPoint = self.convert(eventLocation, from: nil)
-        let normalizedTouchPoint : NSPoint = self.normalize(point: touchPoint)
+        let touchPoint : NSPoint = self.convert(event.locationInWindow, from: nil)
         
         self.controlPoints.append(touchPoint)
-        
-        //calling draw again
-        self.setNeedsDisplay(self.frame)
     }
     
+    
+    //called when right mouse button is clicked
     override func rightMouseDown(with event: NSEvent) {
         
         //converting screen to window coordinates
-        let eventLocation : NSPoint = event.locationInWindow
-        let touchPoint : NSPoint = self.convert(eventLocation, from: nil)
-        let normalizedTouchPoint : NSPoint = self.normalize(point: touchPoint)
+        let touchPoint : NSPoint = self.convert(event.locationInWindow, from: nil)
         
-        var touchRect : CGRect = CGRect(x: touchPoint.x-5, y: touchPoint.y-5, width: 10, height: 10)
+        //creating rect centered where user clicked
+        let touchRect : CGRect = CGRect(x: touchPoint.x-5, y: touchPoint.y-5, width: 10, height: 10)
         
-        self.remove(point: normalizedTouchPoint, within: touchRect)
-        
-        self.setNeedsDisplay(self.frame)
-        
-        
+        self.removePointInside(rectangle: touchRect)
     }
     
-    func remove(point: NSPoint, within: CGRect) {
-        
-        
-        
+    
+    func removePointInside(rectangle: CGRect) {
         for index in (0..<self.controlPoints.count) {
-            if within.contains(self.controlPoints[index]) {
+            if rectangle.contains(self.controlPoints[index]) {
                 self.controlPoints.remove(at: index)
                 break
             }
@@ -99,7 +95,4 @@ class OpenGLView: NSOpenGLView {
         
         return normalizedPoint
     }
-    
-
-    
 }
