@@ -24,16 +24,8 @@ class OpenGLView: NSOpenGLView {
         }
     }
     
-    //MARK: - Point methods
-    func removePoint(inside rectangle: CGRect) {
-        for index in (0..<self.controlPoints.count) {
-            if rectangle.contains(self.controlPoints[index]) {
-                self.controlPoints.remove(at: index)
-                break
-            }
-        }
-    }
     
+    //MARK: - Point methods
     //normalizing point to [-1, 1]
     func normalize(point: NSPoint) -> NSPoint{
         var normalizedPoint: NSPoint = point
@@ -43,6 +35,20 @@ class OpenGLView: NSOpenGLView {
         
         return normalizedPoint
     }
+    
+    func foundPoint(on mouseClick: NSPoint) -> Int? {
+        
+        //creating rect centered where user clicked
+        let touchRect : CGRect = CGRect(x: mouseClick.x-15, y: mouseClick.y-15, width: 30, height: 30)
+        
+        for index in (0..<self.controlPoints.count) {
+            if touchRect.contains(self.controlPoints[index]) {
+                return index
+            }
+        }
+        return nil
+    }
+    
 
     // MARK: - Drawing methods
     override func draw(_ dirtyRect: NSRect) {
@@ -74,65 +80,56 @@ class OpenGLView: NSOpenGLView {
         glEnd();
     }
     
+    
     // MARK: - Mouse methods
-    //called when left mouse button is clicked
     override func mouseDown(with event: NSEvent) {
-        
-        
-        var theEvent: NSEvent
+        //loop control variables
         var keepOn: Bool = true
-        var isInside: Bool = false
-        var mouseLoc: NSPoint
-        var dragging: Bool = false
+        var isDragging: Bool = false
+        
+        let mouseDragOrUp : NSEventMask = NSEventMask(rawValue: UInt64(Int(NSEventMask.leftMouseUp.union(.leftMouseDragged).rawValue)))
         
         while (keepOn) {
-            theEvent = (self.window?.nextEvent(matching: NSEventMask(rawValue: UInt64(Int(NSEventMask.leftMouseUp.union(.leftMouseDragged).rawValue))))!)!
-            mouseLoc = self.convert(theEvent.locationInWindow, from: nil)
-            isInside = self.mouse(mouseLoc, in: self.bounds)
-            //creating rect centered where user clicked
-            let touchRect : CGRect = CGRect(x: mouseLoc.x-15, y: mouseLoc.y-15, width: 30, height: 30)
             
-            switch (theEvent.type) {
+            let nextEvent : NSEvent = (self.window?.nextEvent(matching: mouseDragOrUp))!
+            let mouseLocation: NSPoint = self.convert(nextEvent.locationInWindow, from: nil)
+            let isInsideWindow: Bool = self.mouse(mouseLocation, in: self.bounds)
+            
+            switch (nextEvent.type) {
+                
             case NSEventType.leftMouseDragged:
-                dragging = true
-                for index in (0..<self.controlPoints.count) {
-                    if touchRect.contains(self.controlPoints[index]) {
-                        self.controlPoints[index] = mouseLoc
-                        break
-                    }
+                isDragging = true
+                if let index = self.foundPoint(on: mouseLocation) {
+                    //move point to mouse location
+                    self.controlPoints[index] = mouseLocation
                 }
-                break;
+                break
+                
             case NSEventType.leftMouseUp:
-                if (isInside && !dragging) {
-                    //converting screen to window coordinates
-                    let touchPoint: NSPoint = self.convert(event.locationInWindow, from: nil)
-                    
-                    self.controlPoints.append(touchPoint)
+                if (isInsideWindow && !isDragging) {
+                    //create new point
+                    self.controlPoints.append(mouseLocation)
                 }
-                //do something
-                dragging = false
+                isDragging = false
                 keepOn = false
-                break;
+                break
+                
             default:
-                /* Ignore any other kind of event. */
-                break;
+                // Ignoring any other type of event
+                break
             }
-            
         }
-        
-        return;
+        return
     }
     
-    //called when right mouse button is clicked
     override func rightMouseDown(with event: NSEvent) {
         
         //converting screen to window coordinates
         let touchPoint : NSPoint = self.convert(event.locationInWindow, from: nil)
         
-        //creating rect centered where user clicked
-        let touchRect : CGRect = CGRect(x: touchPoint.x-5, y: touchPoint.y-5, width: 10, height: 10)
-        
-        self.removePoint(inside: touchRect)
+        if let index = self.foundPoint(on: touchPoint) {
+            self.controlPoints.remove(at: index)
+        }
     }
     
 }
