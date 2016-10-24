@@ -19,8 +19,8 @@ class OpenGLView: NSOpenGLView {
         //updates interface when new value is attributed
         didSet {
             if controlPoints != oldValue {
-                if controlPoints.count > 0{
-                    self.bezier()
+                if controlPoints.count > 1{
+                    self.bezierCurve()
                 }
                 self.setNeedsDisplay(self.frame)
             }
@@ -149,37 +149,40 @@ class OpenGLView: NSOpenGLView {
     
     
     //MARK: - deCasteljau
-    func linearInterpolation(a: NSPoint, b: NSPoint, t: Double) -> NSPoint {
+    func linearInterpolation(of pointA: NSPoint, and pointB: NSPoint, by t: Double) -> NSPoint {
         var interpolation: NSPoint = NSPoint()
         
-        let xa = (1-t)*Double((a.x))
-        let xb = Double(b.x)*t
-        interpolation.x = CGFloat(xa + xb)
-        let ya = (1-t)*Double((a.y))
-        let yb = Double(b.y)*t
-        interpolation.y = CGFloat(ya + yb)
+        // Interpolation of X coordinates
+        let pointAInterX = (1-t)*Double((pointA.x))
+        let pointBInterX = Double(pointB.x)*t
+        interpolation.x = CGFloat(pointAInterX + pointBInterX)
+    
+        // Interpolation of X coordinates
+        let pointAInterY = (1-t)*Double((pointA.y))
+        let pointBInterY = Double(pointB.y)*t
+        interpolation.y = CGFloat(pointAInterY + pointBInterY)
         
         return interpolation
     }
     
     func curvePoint(from controlPoints: [NSPoint], t: Double) -> NSPoint {
-        var q : [NSPoint] = controlPoints
+        var controlPointsAux : [NSPoint] = controlPoints
         
-        for k in (1..<q.count) {
-            for i in (0..<q.count-k) {
-                q[i] = linearInterpolation(a: q[i], b: q[i+1], t: t)
+        for column in (1..<controlPointsAux.count) {
+            for index in (0..<controlPointsAux.count-column) {
+                controlPointsAux[index] = linearInterpolation(of: controlPointsAux[index], and: controlPointsAux[index+1], by: t)
             }
         }
-        return q[0]
+        return controlPointsAux[0]
     }
     
-    func bezier() {
+    func bezierCurve() {
         self.curvePoints = []
         var factor = 0.0
         while factor < 1 {
             
             self.curvePoints.append(curvePoint(from: controlPoints, t: factor))
-            factor = factor + 0.005
+            factor = factor + 0.0005
         }
     }
 }
