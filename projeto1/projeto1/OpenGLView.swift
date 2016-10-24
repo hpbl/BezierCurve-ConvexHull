@@ -19,11 +19,23 @@ class OpenGLView: NSOpenGLView {
         //updates interface when new value is attributed
         didSet {
             if controlPoints != oldValue {
+                if controlPoints.count > 0{
+                    self.bezier()
+                }
                 self.setNeedsDisplay(self.frame)
             }
         }
     }
     
+    var curvePoints : [NSPoint] = [] {
+        //updates interface when new value is attributed
+        didSet {
+            if curvePoints != oldValue {
+                self.setNeedsDisplay(self.frame)
+            }
+        }
+    }
+
     
     //MARK: - Point methods
     //normalizing point to [-1, 1]
@@ -60,19 +72,22 @@ class OpenGLView: NSOpenGLView {
         glClearColor(0.2, 0.3, 0.3, 1)
         glClear(GLbitfield(GL_COLOR_BUFFER_BIT))
     
-        self.drawControlPoints()
-
+        self.draw(points: self.controlPoints)
+        if self.controlPoints.count > 1 {
+            self.draw(points: self.curvePoints)
+        }
+        
         //forcing execution of GL commands
         glFlush()
     }
     
     // OpengL routine to draw points
-    func drawControlPoints() {
+    func draw(points: [NSPoint]) {
         glPointSize(5.0)
         glColor3f(1.0, 1.0, 0.0)
         glBegin(GLenum(GL_POINTS))
         
-        for point in self.controlPoints {
+        for point in points {
             let normPoint = self.normalize(point: point)
             glVertex3fv([Float(normPoint.x), Float(normPoint.y), 0])
         }
@@ -132,6 +147,41 @@ class OpenGLView: NSOpenGLView {
         }
     }
     
+    
+    //MARK: - deCasteljau
+    func linearInterpolation(a: NSPoint, b: NSPoint, t: Double) -> NSPoint {
+        var interpolation: NSPoint = NSPoint()
+        
+        let xa = (1-t)*Double((a.x))
+        let xb = Double(b.x)*t
+        interpolation.x = CGFloat(xa + xb)
+        let ya = (1-t)*Double((a.y))
+        let yb = Double(b.y)*t
+        interpolation.y = CGFloat(ya + yb)
+        
+        return interpolation
+    }
+    
+    func curvePoint(from controlPoints: [NSPoint], t: Double) -> NSPoint {
+        var q : [NSPoint] = controlPoints
+        
+        for k in (1..<q.count) {
+            for i in (0..<q.count-k) {
+                q[i] = linearInterpolation(a: q[i], b: q[i+1], t: t)
+            }
+        }
+        return q[0]
+    }
+    
+    func bezier() {
+        self.curvePoints = []
+        var factor = 0.0
+        while factor < 1 {
+            
+            self.curvePoints.append(curvePoint(from: controlPoints, t: factor))
+            factor = factor + 0.005
+        }
+    }
 }
 
 
