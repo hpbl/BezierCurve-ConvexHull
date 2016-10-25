@@ -69,12 +69,12 @@ class OpenGLView: NSOpenGLView {
         // Drawing code here.
         
         //clearing the color buffer and setting bg color
-        glClearColor(0.2, 0.3, 0.3, 1)
+        glClearColor(40/255, 43/255, 53/255, 1)
         glClear(GLbitfield(GL_COLOR_BUFFER_BIT))
     
         self.draw(points: self.controlPoints)
         if self.controlPoints.count > 1 {
-            self.draw(points: self.curvePoints)
+            self.drawCurve(points: self.curvePoints)
         }
         
         //forcing execution of GL commands
@@ -83,8 +83,21 @@ class OpenGLView: NSOpenGLView {
     
     // OpengL routine to draw points
     func draw(points: [NSPoint]) {
-        glPointSize(5.0)
-        glColor3f(1.0, 1.0, 0.0)
+        glPointSize(6.0)
+        glColor3f(225/255, 61/255, 121/255)
+        glBegin(GLenum(GL_POINTS))
+        
+        for point in points {
+            let normPoint = self.normalize(point: point)
+            glVertex3fv([Float(normPoint.x), Float(normPoint.y), 0])
+        }
+        
+        glEnd();
+    }
+    
+    func drawCurve(points: [NSPoint]) {
+        glPointSize(2.0)
+        glColor3f(0, 170/255, 202/255)
         glBegin(GLenum(GL_POINTS))
         
         for point in points {
