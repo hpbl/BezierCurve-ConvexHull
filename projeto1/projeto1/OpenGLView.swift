@@ -74,7 +74,8 @@ class OpenGLView: NSOpenGLView {
     
         self.draw(points: self.controlPoints)
         if self.controlPoints.count > 1 {
-            self.drawCurve(points: self.curvePoints)
+           // self.drawCurve(points: self.curvePoints)
+            self.drawCurveLines()
         }
         
         //forcing execution of GL commands
@@ -106,6 +107,34 @@ class OpenGLView: NSOpenGLView {
         }
         
         glEnd();
+    }
+
+    
+    func drawCurveLines() {
+        
+        glLineWidth(0.5);
+        glColor3f(0, 170/255, 202/255);
+        glBegin(GLenum(GL_LINES));
+        
+        if(curvePoints.count > 1){
+            for index in (0..<(self.curvePoints.count)) {
+                let point = self.normalize(point: curvePoints[index])
+                var nextPoint : NSPoint
+                
+                if(index == self.curvePoints.count-1){
+                    nextPoint = self.normalize(point: controlPoints[self.controlPoints.endIndex-1])
+                }
+                else{
+                    nextPoint = self.normalize(point: curvePoints[index+1])
+                }
+                glVertex3fv([Float(point.x), Float(point.y), 0])
+                glVertex3fv([Float(nextPoint.x), Float(nextPoint.y), 0])
+                
+            }
+        }
+        
+        glEnd();
+        
     }
     
     
@@ -195,7 +224,7 @@ class OpenGLView: NSOpenGLView {
         while factor < 1 {
             
             self.curvePoints.append(curvePoint(from: controlPoints, t: factor))
-            factor = factor + 0.0005
+            factor = factor + 0.05
         }
     }
 }
