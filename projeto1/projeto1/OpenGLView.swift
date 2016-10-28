@@ -127,6 +127,7 @@ class OpenGLView: NSOpenGLView {
                 else{
                     nextPoint = self.normalize(point: curvePoints[index+1])
                 }
+
                 glVertex3fv([Float(point.x), Float(point.y), 0])
                 glVertex3fv([Float(nextPoint.x), Float(nextPoint.y), 0])
                 
