@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import AppKit
 import Cocoa
 import OpenGL
 import GLKit
@@ -21,6 +22,7 @@ class OpenGLView: NSOpenGLView {
             if controlPoints != oldValue {
                 if controlPoints.count > 1{
                     self.bezierCurve()
+                    self.convexHull(of: controlPoints)
                 }
                 self.setNeedsDisplay(self.frame)
             }
@@ -35,6 +37,17 @@ class OpenGLView: NSOpenGLView {
             }
         }
     }
+    
+    var convexHull : [NSPoint] = []
+    
+    var shouldDrawHull : Bool = false {
+        didSet {
+            self.setNeedsDisplay(self.frame)
+        }
+    }
+    
+    override var acceptsFirstResponder: Bool { return true }
+
 
     
     //MARK: - Point methods
@@ -74,7 +87,11 @@ class OpenGLView: NSOpenGLView {
     
         self.draw(points: self.controlPoints)
         if self.controlPoints.count > 1 {
-            self.drawCurve(points: self.curvePoints)
+            self.drawCurve(from: self.curvePoints)
+        }
+        
+        if self.controlPoints.count > 2 && self.shouldDrawHull {
+            self.drawConvexHull(from: self.convexHull)
         }
         
         //forcing execution of GL commands
@@ -95,7 +112,8 @@ class OpenGLView: NSOpenGLView {
         glEnd();
     }
     
-    func drawCurve(points: [NSPoint]) {
+    // OpengL routine to draw curve
+    func drawCurve(from points: [NSPoint]) {
         glPointSize(2.0)
         glColor3f(0, 170/255, 202/255)
         glBegin(GLenum(GL_POINTS))
@@ -108,8 +126,29 @@ class OpenGLView: NSOpenGLView {
         glEnd();
     }
     
+    func drawConvexHull(from points: [NSPoint]) {
+        glLineWidth(2.5)
+        glColor3f(77/255, 192/255, 86/255)
+        glBegin(GLenum(GL_LINES))
+        
+        for index in (0..<self.convexHull.count) {
+            let normPoint = self.normalize(point: self.convexHull[index])
+            var nextNormPoint : NSPoint
+            if index == self.convexHull.count-1 {
+                nextNormPoint = self.normalize(point: self.convexHull[0])
+            } else {
+                nextNormPoint = self.normalize(point: self.convexHull[index+1])
+            }
+            glVertex3fv([Float(normPoint.x), Float(normPoint.y), 0])
+            glVertex3fv([Float(nextNormPoint.x), Float(nextNormPoint.y), 0])
+
+        }
+        
+        glEnd();
+    }
     
-    // MARK: - Mouse methods
+    
+    // MARK: - Mouse and Keyboard methods
     override func mouseDown(with event: NSEvent) {
         //loop control variables
         var keepOn: Bool = true
@@ -160,8 +199,14 @@ class OpenGLView: NSOpenGLView {
         }
     }
     
+    override func keyDown(with event: NSEvent) {
+        if event.keyCode == 8 {
+            self.shouldDrawHull = !self.shouldDrawHull
+        }
+    }
     
-    //MARK: - deCasteljau
+    
+    // MARK: - deCasteljau
     func linearInterpolation(of pointA: NSPoint, and pointB: NSPoint, by t: Double) -> NSPoint {
         var interpolation: NSPoint = NSPoint()
         
@@ -198,6 +243,62 @@ class OpenGLView: NSOpenGLView {
             factor = factor + 0.0005
         }
     }
+    
+    
+    // MARK: - Convex Hull
+    func convexHull(of controlPoints: [NSPoint]) {
+        //Sorting the points by x-coordinate (in case of a tie, sorting by y-coordinate)
+        let sortedPoints = controlPoints.sorted { (pointA, pointB) -> Bool in
+            return (pointA.x == pointB.x) ? (pointA.y > pointB.y) : (pointA.x > pointB.x)
+        }
+        
+        var upperHull : [NSPoint] = []
+        var lowerHull : [NSPoint] = []
+
+        /*while L contains at least two points and the sequence of last two points
+        of L and the point P[i] does not make a counter-clockwise turn:
+        remove the last point from L*/
+        for point in sortedPoints {
+            while (lowerHull.count >= 2) &&
+                  (self.crossProduct(pointO: lowerHull[lowerHull.count-2],
+                                     pointA: lowerHull[lowerHull.count-1],
+                                     pointB: point) <= 0) {
+                lowerHull.removeLast()
+            }
+            lowerHull.append(point)
+        }
+        
+        /*for i = n, n-1, ..., 1:
+         while U contains at least two points and the sequence of last two points
+         of U and the point P[i] does not make a counter-clockwise turn:
+         remove the last point from U
+         append P[i] to U*/
+        for point in sortedPoints.reversed() {
+            while (upperHull.count >= 2) &&
+                (self.crossProduct(pointO: upperHull[upperHull.count-2],
+                                   pointA: upperHull[upperHull.count-1],
+                                   pointB: point) <= 0) {
+                                    upperHull.removeLast()
+            }
+            upperHull.append(point)
+        }
+ 
+        //removing duplicates
+        //lowerHull.removeLast()
+        upperHull.removeLast()
+ 
+        self.convexHull = lowerHull + upperHull
+    }
+ 
+    func crossProduct(pointO: NSPoint, pointA: NSPoint, pointB: NSPoint) -> Double {
+        /*  2D cross product of OA and OB vectors, i.e. z-component of their 3D cross product.
+         Returns a positive value, if OAB makes a counter-clockwise turn,
+         negative for clockwise turn, and zero if the points are collinear.*/
+        let part1 = (pointA.x - pointO.x) * (pointB.y - pointO.y)
+        let part2 = (pointA.y - pointO.y) * (pointB.x - pointO.x)
+        return  Double(part1 - part2)
+    }
+    
 }
 
 
