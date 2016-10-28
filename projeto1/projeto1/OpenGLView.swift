@@ -114,20 +114,6 @@ class OpenGLView: NSOpenGLView {
     }
     
     // OpengL routine to draw curve
-    func drawCurve(from points: [NSPoint]) {
-        glPointSize(2.0)
-        glColor3f(0, 170/255, 202/255)
-        glBegin(GLenum(GL_POINTS))
-        
-        for point in points {
-            let normPoint = self.normalize(point: point)
-            glVertex3fv([Float(normPoint.x), Float(normPoint.y), 0])
-        }
-        
-        glEnd();
-    }
-
-    
     func drawCurveLines() {
         
         glLineWidth(0.5);
@@ -155,6 +141,8 @@ class OpenGLView: NSOpenGLView {
         glEnd();
         
     }
+    
+    // OpengL routine to draw Convex Hull
     func drawConvexHull(from points: [NSPoint]) {
         glLineWidth(2.5)
         glColor3f(77/255, 192/255, 86/255)
@@ -244,7 +232,7 @@ class OpenGLView: NSOpenGLView {
         let pointBInterX = Double(pointB.x)*t
         interpolation.x = CGFloat(pointAInterX + pointBInterX)
     
-        // Interpolation of X coordinates
+        // Interpolation of Y coordinates
         let pointAInterY = (1-t)*Double((pointA.y))
         let pointBInterY = Double(pointB.y)*t
         interpolation.y = CGFloat(pointAInterY + pointBInterY)
@@ -269,12 +257,12 @@ class OpenGLView: NSOpenGLView {
         while factor < 1 {
             
             self.curvePoints.append(curvePoint(from: controlPoints, t: factor))
-            factor = factor + 0.05
+            factor = factor + 0.0005
         }
     }
     
     
-    // MARK: - Convex Hull
+    // MARK: - Convex Hull - Monotone Chain
     func convexHull(of controlPoints: [NSPoint]) {
         //Sorting the points by x-coordinate (in case of a tie, sorting by y-coordinate)
         let sortedPoints = controlPoints.sorted { (pointA, pointB) -> Bool in
